@@ -122,7 +122,12 @@ public class ReflexView extends View {
         spots.add(spot);
         spot.setLayoutParams(new RelativeLayout.LayoutParams(SPOT_DIAMETER, SPOT_DIAMETER));
 
-        //spot.setImageResource(random.nextInt(2) == 0);
+        spot.setImageResource(random.nextInt(2) == 0 ? R.drawable.ic_my_location_green_24dp : R.drawable.ic_my_location_red_24dp);
+
+        spot.setX(x);
+        spot.setY(y);
+
+        relativeLayout.addView(spot); //Put the view on the screen
     }
 
 }
