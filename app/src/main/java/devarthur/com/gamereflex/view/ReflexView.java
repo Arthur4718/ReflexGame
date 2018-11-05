@@ -20,6 +20,8 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import devarthur.com.gamereflex.R;
+
 /**
  * Created by Arthur on 05/11/2018.
  */
@@ -50,7 +52,7 @@ public class ReflexView extends View {
     private TextView highscoreTextView;
     private TextView currentScoreTextView;
     private TextView levelTextView;
-    private LinearLayout linearLayout;
+    private LinearLayout livesLinearLayout;
     private RelativeLayout relativeLayout;
     private Resources resources;
     private LayoutInflater layoutInflater;
@@ -76,11 +78,51 @@ public class ReflexView extends View {
     //Stadard tool to handle sounds
     private SoundPool soundPool;
     private int volume;
-    private Map<Integer, Integer> soundMap; 
+    private Map<Integer, Integer> soundMap;
 
     public ReflexView(Context context, SharedPreferences sharedPreferences, RelativeLayout parentLayout) {
         super(context);
+
+        preferences = sharedPreferences;
+        highScore = preferences.getInt(HIGH_SCORE, 0 );
+
+        //save resources for loading external values
+        resources = context.getResources();
+
+        //save Layout Inflater
+        layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+
+        //Setup UI components
+        relativeLayout = parentLayout;
+        livesLinearLayout = relativeLayout.findViewById(R.id.livesLinearLayaout);
+        highscoreTextView = relativeLayout.findViewById(R.id.highscore_tv);
+        currentScoreTextView = relativeLayout.findViewById(R.id.score);
+        levelTextView = relativeLayout.findViewById(R.id.level_tv);
+
+        spotHandler = new Handler();
     }
 
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        viewHeight = h;
+        viewWidth = w;
+
+    }
+
+    public void addNewSpot(){
+        int x = random.nextInt(viewWidth - SPOT_DIAMETER);
+        int y = random.nextInt(viewHeight - SPOT_DIAMETER);
+        int x2 = random.nextInt(viewWidth - SPOT_DIAMETER);
+        int y2 = random.nextInt(viewHeight - SPOT_DIAMETER);
+
+        //Create the actual spot/cirle
+        final ImageView spot = (ImageView) layoutInflater.inflate(R.layout.untouched, null);
+
+        spots.add(spot);
+        spot.setLayoutParams(new RelativeLayout.LayoutParams(SPOT_DIAMETER, SPOT_DIAMETER));
+
+        //spot.setImageResource(random.nextInt(2) == 0);
+    }
 
 }

@@ -33,23 +33,15 @@
         android:text="@string/score"
         android:layout_marginLeft="10dp"
         android:layout_marginTop="2dp"
-
         />
 
     <LinearLayout
-        android:id="@+id/LinearLayout"
+        android:id="@+id/livesLinearLayaout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_margin="10dp"
         android:layout_alignParentBottom="true"
         >
-
-
-
-
     </LinearLayout>
-
-
-
 </RelativeLayout>
