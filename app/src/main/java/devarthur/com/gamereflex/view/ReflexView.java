@@ -195,6 +195,16 @@ public class ReflexView extends View {
         }
         score -= 15 * level;
         score = Math.max(score, 0); //This prevents score from going below zero
+
+        if(spotsTouched % NEW_LEVEL == 0){
+            ++level;
+            animationTime *= 0.95; //make the animation go faster.
+            if(livesLinearLayout.getChildCount() < MAX_LIVES){
+                ImageView life = (ImageView) layoutInflater.inflate(R.layout.life, null);
+                livesLinearLayout.addView(life);
+            }
+        }
+        
         displayScores();
         return true;
     }
