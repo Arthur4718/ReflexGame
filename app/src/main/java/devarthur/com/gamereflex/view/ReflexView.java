@@ -1,6 +1,7 @@
 package devarthur.com.gamereflex.view;
 
 import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -19,6 +20,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -125,7 +127,7 @@ public class ReflexView extends View {
                 .setAudioAttributes(audioAttributes)
                 .build();
         soundPool.build();
-    
+
         AudioManager manager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         volume = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
@@ -184,6 +186,74 @@ public class ReflexView extends View {
         });
 
         relativeLayout.addView(spot); //Put the view on the screen
+
+        //Add spot animations
+        spot.animate().x(x2).y(y2).scaleX(SCALE_X).scaleY(SCALE_Y)
+                .setDuration(animationTime).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                animators.add(animation); //Save for later
+            }
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                animators.remove(animation);
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+
+                if(!gamePaused && spots.contains(spot)){
+                    missedSpot(spot);
+
+                }
+
+            }
+
+
+        });
+
+
+    }
+
+    private void missedSpot(ImageView spot) {
+        spots.remove(spot);
+        relativeLayout.removeView(spot);
+
+        if(gameOver){
+            return;
+        }
+        if(soundPool != null){
+            soundPool.build().play(DISSAPEAR_SOUND_ID, volume, volume,SOUND_PRIORITY, 0, 1f);
+        }
+        if(livesLinearLayout.getChildCount() == 0){
+            gameOver = true;
+            //Check if there as need to update the highscore.
+            if(score > highScore){
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putInt(HIGH_SCORE, score);
+                editor.apply(); //You can use commit, but apply is the better way.
+
+                highScore = score;
+            }
+        }
+        cancelAnimations();
+    }
+
+    private void cancelAnimations() {
+        for(Animator animator : animators){
+            animator.cancel();
+        }
+
+        //remove remaining spots from the screen
+
+        for(ImageView view : spots){
+            relativeLayout.removeView(view);
+
+        }
+        spotHandler.removeCallbacks(addSpotRunnable);
+        animators.clear();
+        spots.clear();
     }
 
     private void touched(ImageView spot) {
