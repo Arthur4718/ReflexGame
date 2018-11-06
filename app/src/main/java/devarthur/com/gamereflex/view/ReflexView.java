@@ -2,7 +2,9 @@ package devarthur.com.gamereflex.view;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.media.AudioAttributes;
@@ -11,11 +13,9 @@ import android.media.SoundPool;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.RequiresApi;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -33,6 +33,8 @@ import devarthur.com.gamereflex.R;
  * Created by Arthur on 05/11/2018.
  */
 
+//TODO  https://www.udemy.com/android-developers-portfolio-masterclass-build-7-apps/learn/v4/t/lecture/8679406?start=0
+    //time 8h30
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ReflexView extends View {
     //Contants;
@@ -48,7 +50,7 @@ public class ReflexView extends View {
     private int animationTime;
     private boolean gameOver;
     private boolean gamePaused;
-    private boolean dialogDisplay;
+    private boolean dialogDisplayed;
     private int highScore;
 
     //Collections types for our cirles/spots (imageviews) and Animators
@@ -199,11 +201,17 @@ public class ReflexView extends View {
 
     public void addNewSpot(){
 
+        int x = random.nextInt(viewWidth - SPOT_DIAMETER);
+        int y = random.nextInt(viewHeight - SPOT_DIAMETER);
+        int x2 = random.nextInt(viewWidth - SPOT_DIAMETER);
+        int y2 = random.nextInt(viewHeight - SPOT_DIAMETER);
+
         //Create the actual spot/cirle
         final ImageView spot = (ImageView) layoutInflater.inflate(R.layout.untouched, null);
 
         spots.add(spot);
         spot.setLayoutParams(new RelativeLayout.LayoutParams(SPOT_DIAMETER, SPOT_DIAMETER));
+/*
 
         DisplayMetrics metrics = new DisplayMetrics();
         WindowManager windowManager = (WindowManager) spot.getContext().getSystemService(Context.WINDOW_SERVICE);
@@ -211,11 +219,7 @@ public class ReflexView extends View {
         windowManager.getDefaultDisplay().getMetrics(metrics);
         int width = metrics.widthPixels;
         int height = metrics.heightPixels;
-
-        int x = random.nextInt(width - SPOT_DIAMETER);
-        int y = random.nextInt(height - SPOT_DIAMETER);
-        int x2 = random.nextInt(width - SPOT_DIAMETER);
-        int y2 = random.nextInt(height - SPOT_DIAMETER);
+*/
 
         spot.setImageResource(random.nextInt(2) == 0 ? R.drawable.ic_my_location_green_24dp : R.drawable.ic_my_location_red_24dp);
 
@@ -269,7 +273,8 @@ public class ReflexView extends View {
             return;
         }
         if(soundPool != null){
-            soundPool.build().play(DISSAPEAR_SOUND_ID, volume, volume,SOUND_PRIORITY, 0, 1f);
+            soundPool.build().play(DISSAPEAR_SOUND_ID, volume, volume,
+                    SOUND_PRIORITY, 0, 1f);
         }
         if(livesLinearLayout.getChildCount() == 0){
             gameOver = true;
@@ -281,8 +286,26 @@ public class ReflexView extends View {
 
                 highScore = score;
             }
+            cancelAnimations();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Game Over");
+            builder.setMessage("Score: " + score);
+            builder.setPositiveButton("Reset", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    displayScores();
+                    dialogDisplayed = false;
+                    resetGame();
+                }
+            });
+            dialogDisplayed = true;
+            builder.show();
+        }else{
+            livesLinearLayout.removeViewAt(livesLinearLayout.getChildCount() -1);
+            addNewSpot();
         }
-        cancelAnimations();
+
     }
 
     private void cancelAnimations() {

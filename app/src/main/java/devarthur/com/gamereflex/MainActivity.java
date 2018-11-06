@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.RelativeLayout;
 
 import devarthur.com.gamereflex.view.ReflexView;
@@ -19,9 +18,27 @@ public class MainActivity extends AppCompatActivity {
 
         RelativeLayout layout = findViewById(R.id.relativeLayout);
 
-        gameView = new ReflexView(this, getPreferences(Context.MODE_PRIVATE), layout);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            gameView = new ReflexView(this, getPreferences(Context.MODE_PRIVATE), layout);
+        }
         layout.addView(gameView, 0);
 
 
+    }
+
+
+    protected void onPause() {
+        super.onPause();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            gameView.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            gameView.resume(getApplicationContext());
+        }
     }
 }
