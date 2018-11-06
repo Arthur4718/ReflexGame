@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.support.annotation.RequiresApi;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -20,7 +21,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -117,6 +117,40 @@ public class ReflexView extends View {
         viewHeight = h;
         viewWidth = w;
     }
+
+    public void pause(){
+        gamePaused = true;
+        soundPool.build().release();
+        soundPool = null;
+        cancelAnimations();
+    }
+    public void resume(Context context){
+        gamePaused = false;
+        initializeSoundEffects(context);
+    }
+    public void resetGame(){
+        spots.clear();
+        animators.clear();
+        livesLinearLayout.removeAllViews();
+
+        animationTime = INITIAL_ANIMATION_DURATION;
+
+        spotsTouched = 0;
+        score = 0;
+        level = 1;
+        gameOver = false;
+
+        for(int i = 0; i < LIVES; i++){
+            livesLinearLayout.addView(
+                    (ImageView) layoutInflater.inflate(R.layout.life, null)
+            );
+
+        }
+        for(int i = 1; i <= INITIAL_SPOT; i++){
+            spotHandler.postDelayed(addSpotRunnable, i + SPOT_DELAY);
+
+        }
+    }
     private void initializeSoundEffects(Context context){
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -152,6 +186,17 @@ public class ReflexView extends View {
         }
     };
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if(soundPool != null){
+            soundPool.build().play(MISS_SOUND_ID, volume, volume, SOUND_PRIORITY, 0 ,1f );
+        }
+        score -= 15 * level;
+        score = Math.max(score, 0); //This prevents score from going below zero
+        displayScores();
+        return true;
+    }
+
     public void addNewSpot(){
 
         //Create the actual spot/cirle
@@ -181,7 +226,7 @@ public class ReflexView extends View {
         spot.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                touched(spot);
+                touchedSpot(spot);
             }
         });
 
@@ -256,7 +301,7 @@ public class ReflexView extends View {
         spots.clear();
     }
 
-    private void touched(ImageView spot) {
+    private void touchedSpot(ImageView spot) {
 
         relativeLayout.removeView(spot);
         //Call the qeue and remove the spot from there
@@ -264,7 +309,10 @@ public class ReflexView extends View {
         level = 1;
         ++spotsTouched;
         score += 10 * level;
-
+        if(spotsTouched % NEW_LEVEL == 0){
+            ++level;
+            animationTime *= 0.95; //make the animation go faster.
+        }
 
 
     }
