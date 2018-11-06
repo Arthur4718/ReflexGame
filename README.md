@@ -6,3 +6,6 @@ An Android Game created as a part of the certitification requirements for the An
 * Iterative creation of views using Java. 
 * Qeue
 * A simple usage of Windows Manager to get display metrics. 
+* Use of Soundpool. 
+
+
