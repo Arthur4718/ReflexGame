@@ -77,6 +77,7 @@ public class ReflexView extends View {
     public static final int LIVES = 3;
     public static final int MAX_LIVES = 7;
     public static final int NEW_LEVEL = 10;
+    public static final int SOUND_QUALITY = 100;
     private Handler spotHandler;
     //Static variables for sounde effects behaviors
     public static final int HIT_SOUND_ID = 1;
@@ -85,7 +86,7 @@ public class ReflexView extends View {
     public static final int SOUND_PRIORITY = 100;
     public static final int MAX_STREAMS = 4;
     //Stadard tool to handle sounds
-    private SoundPool.Builder soundPool;
+    private SoundPool soundPool;
     private int volume;
     private Map<Integer, Integer> soundMap;
 
@@ -109,9 +110,9 @@ public class ReflexView extends View {
         currentScoreTextView = relativeLayout.findViewById(R.id.score);
         levelTextView = relativeLayout.findViewById(R.id.level_tv);
 
-        //spotHandler = new Handler();
+        spotHandler = new Handler();
 
-        addNewSpot();
+
     }
 
     @Override
@@ -122,21 +123,42 @@ public class ReflexView extends View {
 
     public void pause(){
         gamePaused = true;
-        soundPool.build().release();
+        soundPool.release();
         soundPool = null;
         cancelAnimations();
     }
+
+    private void cancelAnimations() {
+        for(Animator animator : animators){
+            animator.cancel();
+        }
+
+        //remove remaining spots from the screen
+
+        for(ImageView view : spots){
+            relativeLayout.removeView(view);
+
+        }
+        spotHandler.removeCallbacks(addSpotRunnable);
+        animators.clear();
+        spots.clear();
+    }
+
     public void resume(Context context){
         gamePaused = false;
         initializeSoundEffects(context);
+
+        if (!dialogDisplayed){
+            resetGame();
+        }
     }
+
     public void resetGame(){
         spots.clear();
         animators.clear();
         livesLinearLayout.removeAllViews();
 
         animationTime = INITIAL_ANIMATION_DURATION;
-
         spotsTouched = 0;
         score = 0;
         level = 1;
@@ -153,25 +175,20 @@ public class ReflexView extends View {
 
         }
     }
-    private void initializeSoundEffects(Context context){
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .setUsage(AudioAttributes.USAGE_GAME)
-                .build();
-        soundPool = new SoundPool.Builder();
-        soundPool.setMaxStreams(MAX_STREAMS)
-                .setAudioAttributes(audioAttributes)
-                .build();
-        soundPool.build();
 
+    private void initializeSoundEffects(Context context){
+        soundPool = new SoundPool(MAX_STREAMS, AudioManager.STREAM_MUSIC, SOUND_QUALITY);
+
+//set sound effect volume
         AudioManager manager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         volume = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-        //Sound Map.
-        soundMap = new HashMap<Integer, Integer>();
-        soundMap.put(HIT_SOUND_ID, soundPool.build().load(context, R.raw.hit, SOUND_PRIORITY));
-        soundMap.put(MISS_SOUND_ID, soundPool.build().load(context, R.raw.miss, SOUND_PRIORITY));
-        soundMap.put(DISSAPEAR_SOUND_ID, soundPool.build().load(context, R.raw.dissapear, SOUND_PRIORITY));
+
+        //Create a sound map
+        soundMap = new HashMap<>();
+        soundMap.put(HIT_SOUND_ID, soundPool.load(context, R.raw.hit, SOUND_PRIORITY));
+        soundMap.put(MISS_SOUND_ID, soundPool.load(context, R.raw.miss, SOUND_PRIORITY));
+        soundMap.put(DISSAPEAR_SOUND_ID, soundPool.load(context, R.raw.dissapear, SOUND_PRIORITY));
 
     }
 
@@ -188,29 +205,8 @@ public class ReflexView extends View {
         }
     };
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if(soundPool != null){
-            soundPool.build().play(MISS_SOUND_ID, volume, volume, SOUND_PRIORITY, 0 ,1f );
-        }
-        score -= 15 * level;
-        score = Math.max(score, 0); //This prevents score from going below zero
-
-        if(spotsTouched % NEW_LEVEL == 0){
-            ++level;
-            animationTime *= 0.95; //make the animation go faster.
-            if(livesLinearLayout.getChildCount() < MAX_LIVES){
-                ImageView life = (ImageView) layoutInflater.inflate(R.layout.life, null);
-                livesLinearLayout.addView(life);
-            }
-        }
-        
-        displayScores();
-        return true;
-    }
-
     public void addNewSpot(){
-
+        //Choosse random coordinates for the object
         int x = random.nextInt(viewWidth - SPOT_DIAMETER);
         int y = random.nextInt(viewHeight - SPOT_DIAMETER);
         int x2 = random.nextInt(viewWidth - SPOT_DIAMETER);
@@ -221,16 +217,6 @@ public class ReflexView extends View {
 
         spots.add(spot);
         spot.setLayoutParams(new RelativeLayout.LayoutParams(SPOT_DIAMETER, SPOT_DIAMETER));
-/*
-
-        DisplayMetrics metrics = new DisplayMetrics();
-        WindowManager windowManager = (WindowManager) spot.getContext().getSystemService(Context.WINDOW_SERVICE);
-
-        windowManager.getDefaultDisplay().getMetrics(metrics);
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
-*/
-
         spot.setImageResource(random.nextInt(2) == 0 ? R.drawable.ic_my_location_green_24dp : R.drawable.ic_my_location_red_24dp);
 
         spot.setX(x);
@@ -275,6 +261,52 @@ public class ReflexView extends View {
 
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if(soundPool != null){
+            soundPool.play(HIT_SOUND_ID, volume, volume, SOUND_PRIORITY, 0 ,1f );
+        }
+        score -= 15 * level;
+        score = Math.max(score, 0); //This prevents score from going below zero
+        displayScores();
+        return true;
+    }
+
+    private void touchedSpot(ImageView spot)
+    {
+        relativeLayout.removeView(spot); // remove touched spot from screen
+        spots.remove(spot); // remove old spot from list
+
+        ++spotsTouched; // increment the number of spots touched
+        score += 10 * level; // increment the score
+
+        // play the hit sounds
+        if (soundPool != null)
+            soundPool.play(HIT_SOUND_ID, volume, volume,
+                    SOUND_PRIORITY, 0, 1f);
+
+
+        // increment level if player touched 10 spots in the current level
+        if (spotsTouched % NEW_LEVEL == 0) {
+            ++level; // increment the level
+            animationTime *= 0.95; // make game 5% faster than prior level
+
+            // if the maximum number of lives has not been reached
+            if (livesLinearLayout.getChildCount() < MAX_LIVES)
+            {
+                ImageView life =
+                        (ImageView) layoutInflater.inflate(R.layout.life, null);
+
+                livesLinearLayout.addView(life); // add life to screen
+            } // end if
+        } // end if
+
+        displayScores(); // update score/level on the screen
+
+        if (!gameOver)
+            addNewSpot(); // add another untouched spot
+    }
+
     private void missedSpot(ImageView spot) {
         spots.remove(spot);
         relativeLayout.removeView(spot);
@@ -283,7 +315,7 @@ public class ReflexView extends View {
             return;
         }
         if(soundPool != null){
-            soundPool.build().play(DISSAPEAR_SOUND_ID, volume, volume,
+            soundPool.play(DISSAPEAR_SOUND_ID, volume, volume,
                     SOUND_PRIORITY, 0, 1f);
         }
         if(livesLinearLayout.getChildCount() == 0){
@@ -293,7 +325,6 @@ public class ReflexView extends View {
                 SharedPreferences.Editor editor = preferences.edit();
                 editor.putInt(HIGH_SCORE, score);
                 editor.apply(); //You can use commit, but apply is the better way.
-
                 highScore = score;
             }
             cancelAnimations();
@@ -318,44 +349,9 @@ public class ReflexView extends View {
 
     }
 
-    private void cancelAnimations() {
-        for(Animator animator : animators){
-            animator.cancel();
-        }
 
-        //remove remaining spots from the screen
 
-        for(ImageView view : spots){
-            relativeLayout.removeView(view);
 
-        }
-        spotHandler.removeCallbacks(addSpotRunnable);
-        animators.clear();
-        spots.clear();
-    }
 
-    private void touchedSpot(ImageView spot) {
-
-        relativeLayout.removeView(spot);
-        //Call the qeue and remove the spot from there
-        spots.remove(spot);
-        level = 1;
-        ++spotsTouched;
-        score += 10 * level;
-        if(spotsTouched % NEW_LEVEL == 0){
-            ++level;
-            animationTime *= 0.95; //make the animation go faster.
-            if(livesLinearLayout.getChildCount() < MAX_LIVES){
-                ImageView life = (ImageView) layoutInflater.inflate(R.layout.life, null);
-                livesLinearLayout.addView(life);
-            }
-        }
-        displayScores();
-
-        if(!gameOver){
-            addNewSpot();
-        }
-
-    }
 
 }
