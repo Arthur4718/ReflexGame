@@ -7,5 +7,6 @@ An Android Game created as a part of the certitification requirements for the An
 * Qeue
 * A simple usage of Windows Manager to get display metrics. 
 * Use of Soundpool. 
+* Use of the Runnable interface.
 
 
